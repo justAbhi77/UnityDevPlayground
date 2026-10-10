@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace Script
@@ -10,64 +11,63 @@ namespace Script
     {
         [SerializeField]
         private GameObject kingdomPrefab, kingdomButtonPrefab;
-        
+
         [SerializeField]
-        Transform kingdomParent, uiKingdomContainer;
-        
+        private Transform kingdomParent, uiKingdomContainer;
+
         [SerializeField]
-        List<Kingdom> kingdoms = new List<Kingdom>();
+        private List<Kingdom> kingdoms = new List<Kingdom>();
 
         private Vector3 _cameraParentAngle = Vector3.zero;
-        private int _currentIndex = 0;
-        
-        void Start()
+        private int _currentIndex;
+
+        private void Start()
         {
-            foreach (Kingdom kingdom in kingdoms)
+            foreach (var kingdom in kingdoms)
                 SpawnKingdomPoint(kingdom);
         }
 
-        void SpawnKingdomPoint(Kingdom kingdom)
+        private void SpawnKingdomPoint(Kingdom kingdom)
         {
-            GameObject kingdomGameObject = Instantiate(kingdomPrefab, kingdomParent);
+            var kingdomGameObject = Instantiate(kingdomPrefab, kingdomParent);
             kingdomGameObject.transform.localEulerAngles = new Vector3(kingdom.x, kingdom.y, 0);
-            
+
             SpawnKingdomButton(kingdom);
         }
 
-        void SpawnKingdomButton(Kingdom kingdom)
+        private void SpawnKingdomButton(Kingdom kingdom)
         {
-            Button KingdomButton = Instantiate(kingdomButtonPrefab, uiKingdomContainer).GetComponent<Button>();
-            KingdomButton.onClick.AddListener((() => LookAtKingdom(kingdom)));
-        }
-        public void LookAtKingdom(Kingdom kingdom)
-        {
-            if (Camera.main != null)
-            {
-                Transform cameraParent = Camera.main.transform.parent;
-
-                _cameraParentAngle.x = kingdom.x;
-                _cameraParentAngle.y = kingdom.y;
-
-                cameraParent.DOLocalRotate(_cameraParentAngle, 1, RotateMode.Fast);
-            }
+            var kingdomButton = Instantiate(kingdomButtonPrefab, uiKingdomContainer).GetComponent<Button>();
+            kingdomButton.onClick.AddListener((() => LookAtKingdom(kingdom)));
         }
 
-        void FixedUpdate()
+        private void LookAtKingdom(Kingdom kingdom)
         {
-            if (Input.anyKeyDown)
-            {
-                if (Input.GetKeyDown(KeyCode.A))
-                    CycleValue(-1, 0, kingdoms.Count - 1);
-                if(Input.GetKeyDown(KeyCode.D))
-                    CycleValue(1, 0, kingdoms.Count - 1);
-                
-                Debug.Log("Looking at kingdom " + _currentIndex);
-                
-                LookAtKingdom(kingdoms[_currentIndex]);
-            }
+            var cam = Camera.main;
+            if (!cam) return;
+            var cameraParent = cam.transform.parent;
+
+            _cameraParentAngle.x = kingdom.x;
+            _cameraParentAngle.y = kingdom.y;
+
+            cameraParent.DOLocalRotate(_cameraParentAngle, 1);
         }
 
-        void CycleValue(int delta, int min, int max)
+        private void FixedUpdate()
+        {
+            if (!Keyboard.current.anyKey.wasPressedThisFrame) return;
+
+            if (Keyboard.current.aKey.wasPressedThisFrame)
+                CycleValue(-1, 0, kingdoms.Count - 1);
+            if (Keyboard.current.dKey.wasPressedThisFrame)
+                CycleValue(1, 0, kingdoms.Count - 1);
+
+            Debug.Log("Looking at kingdom " + _currentIndex);
+
+            LookAtKingdom(kingdoms[_currentIndex]);
+        }
+
+        private void CycleValue(int delta, int min, int max)
         {
             _currentIndex += delta;
             if(_currentIndex < min)
